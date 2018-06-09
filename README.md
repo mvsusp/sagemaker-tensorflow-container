@@ -14,7 +14,7 @@ including:
 ## How do I run these containers?
 
 Using the Python SDK, running this code from the `test/integration/benchmarks/criteo` directory will
-runs a training job with 3 ml.c5.9xlarge instances with 2 parameter servers.
+run a training job with 3 ml.c5.9xlarge instances with 2 parameter servers.
 
 ```python
 from sagemaker.tensorflow import TensorFlow
@@ -67,6 +67,13 @@ tf.train_image = lambda: '520713654638.dkr.ecr.us-east-1.amazonaws.com/sagemaker
 tf.fit({'training': 's3://sagemaker-sample-data-us-east-1/spark/mnist/train'})
 
 ```
+## Available images
+- 520713654638.dkr.ecr.us-east-1.amazonaws.com/sagemaker-tensorflow:1.6.0-cpu-py2-script-mode-preview
+- 520713654638.dkr.ecr.us-east-2.amazonaws.com/sagemaker-tensorflow:1.6.0-cpu-py2-script-mode-preview
+- 520713654638.dkr.ecr.us-west-2.amazonaws.com/sagemaker-tensorflow:1.6.0-cpu-py2-script-mode-preview
+- 520713654638.dkr.ecr.us-east-1.amazonaws.com/sagemaker-tensorflow:1.7.0-cpu-py2-script-mode-preview
+- 520713654638.dkr.ecr.us-east-2.amazonaws.com/sagemaker-tensorflow:1.7.0-cpu-py2-script-mode-preview
+- 520713654638.dkr.ecr.us-west-2.amazonaws.com/sagemaker-tensorflow:1.7.0-cpu-py2-script-mode-preview
 
 ## Developer documentation (WIP)
 
@@ -85,7 +92,7 @@ docker/1.8.0/final/py2/ - tensorflow-1.8.0-cp27-cp27mu-linux_x86_64.whl
 
 ### Building the Images:
 
-test_build has a parameter version that you can change to build 1.6.0, 1.6.0.vanilla, 1.7.0, 1.7.0.vanilla, 1.8.0, 1.8.0 vanilla
+test_build has a parameter version that you can change to build 1.6.0, 1.6.0.vanilla, 1.7.0, 1.7.0.vanilla
 
 in the end, it will push the image to your ecr account, **you have to create the ECR repository**.
 ```bash
@@ -137,7 +144,7 @@ pytest test/integration/benchmarks/criteo/test_criteo.py \
  --instance-type local `# available types: local mode or any SageMaker CPU instance ml.c5.9xlarge for example` \
  --dataset 'large' `# choices: kaggle, large` \
  --region 'us-west-2' `# regions: us-west-2, us-east-1, us-east-2` \
- --framework-version 1.7.0 `# available versions: 1.7.0, 1.8.0, 1.7.0.vanilla, 1.8.0.vanilla` \
+ --framework-version 1.7.0 `# available versions: 1.6.0, 1.7.0, 1.6.0.vanilla, 1.7.0.vanilla` \
 --num-parameter-servers 2 `# number of parameter servers in the training` \
 --num-instances 3 `# number of training instances` \
 --kmp-blocktime 0 `# MKL optimization setting` \
