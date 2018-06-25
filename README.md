@@ -169,4 +169,19 @@ done
 
 AWS_REGION='us-west-2' tensorboard --port 6006 --host localhost --logdir ${CHECKPOINT_PATH}
 ```
+## FAQ
+
+### What is script mode?
+
+Script mode is a newer, simpler, and cleaner way to execute TensorFlow scripts in SageMaker. The objective is to allow our customers to execute any TensorFlow model available with minimal changes.
+ 
+We released the Chainer container a couple of days ago, and it includes Script mode. Please read the documentation here:https://github.com/aws/sagemaker-containers#getting-started----executing-user-scripts-on-amazon-sagemaker
+ 
+The way to execute the scripts and the environment variables that you have access when you execute script mode will not change when we released TensorFlow Script mode. It will be like Chainer.
+ 
+The hyperparameters  that we created especially for you (num_parameter_servers, s3_channel, sagemaker_env_vars) will change to fit a better user experience. We would like to include your feedback for these changes as well.
+
+
+https://github.com/aws/sagemaker-containers#how-a-script-is-executed-inside-the-container explains how the user script is executed and how the hyperparameters are passed as script arguments.
+
 
