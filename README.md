@@ -184,4 +184,35 @@ The hyperparameters  that we created especially for you (num_parameter_servers, 
 
 https://github.com/aws/sagemaker-containers#how-a-script-is-executed-inside-the-container explains how the user script is executed and how the hyperparameters are passed as script arguments.
 
+### I see the message *tensorflow/core/platform/s3/aws_logging.cc::54 Connection has been released. Continuing.* multiple times in the training logs. What is this message?
 
+The message
+
+```bash
+tensorflow/core/platform/s3/aws_logging.cc::54 Connection has been released. Continuing.
+```
+
+happens multiple times in the logs because the [TensorFlow S3 filesytem implementation in TensorFlow](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/docs_src/deploy/s3.md) requests ECS credentials everytime that is writing/reading that to S3.
+
+The message comes from [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/platform/s3/aws_logging.cc?utf8=%E2%9C%93#L54) and it has cpp log level **INFO**:
+
+```c++
+...
+LOG(INFO) << message;
+...
+```
+
+You can set the environment variable ```TF_CPP_MIN_VLOG_LEVEL=1``` to not log INFO level cpp messages.
+
+The available [log levels](https://github.com/tensorflow/tensorflow/blob/352142267a1a151b04c6198de83b40b7e979d1d8/tensorflow/core/platform/default/logging.h#L31) are:
+
+```c++
+namespace tensorflow {
+const int INFO = 0;            // base_logging::INFO;
+const int WARNING = 1;         // base_logging::WARNING;
+const int ERROR = 2;           // base_logging::ERROR;
+const int FATAL = 3;           // base_logging::FATAL;
+const int NUM_SEVERITIES = 4;  // base_logging::NUM_SEVERITIES;
+```
+
+Instances of the S3 file system in TensorFlow are created everytime that [TensorFlow interacts with S3, and new credentials are requested everytime](https://github.com/tensorflow/tensorflow/blob/r1.6/tensorflow/core/platform/s3/s3_file_system.cc#L315). It is necessary to cache the credentials to reduce the volume of requests.
