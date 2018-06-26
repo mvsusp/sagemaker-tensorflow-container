@@ -202,7 +202,7 @@ LOG(INFO) << message;
 ...
 ```
 
-You can set the environment variable ```TF_CPP_MIN_VLOG_LEVEL=1``` to not log INFO level cpp messages.
+You can set the environment variable ```TF_CPP_MIN_LOG_LEVEL=1``` to not log INFO level cpp messages.
 
 The available [log levels](https://github.com/tensorflow/tensorflow/blob/352142267a1a151b04c6198de83b40b7e979d1d8/tensorflow/core/platform/default/logging.h#L31) are:
 
