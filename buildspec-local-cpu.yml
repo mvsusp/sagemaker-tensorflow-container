@@ -1,0 +1,35 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - pip install --upgrade pip --quiet
+      - $(aws ecr get-login --no-include-email)
+      - FRAMEWORK_VERSION=$(ls docker | sort --version-sort -r | sed -n 1p)
+      - TAG=${FRAMEWORK_VERSION}-cpu-py${PY_VERSION}-${CODEBUILD_SOURCE_VERSION}
+      - AWS_ID=$(aws sts get-caller-identity --output text  | awk '{print $1;}')
+      - ECR_REPO=${AWS_ID}.dkr.ecr.us-west-2.amazonaws.com
+      - PREPROD_IMAGE=${ECR_REPO}/$(echo ${GIT_REPO_NAME} | cut -d'-' -f 1,2)
+      - IMAGE_NAME=${PREPROD_IMAGE}:${TAG}
+      - docker pull ${IMAGE_NAME} || true
+  build:
+    commands:
+      - DOCKER_DIR=docker/${FRAMEWORK_VERSION}
+      - FRAMEWORK_BINARY=$(basename ${FRAMEWORK_BINARY_URI})
+      - pip install -U . --quiet
+      - pip install wheel boto3 -U --quiet
+      - python setup.py -q sdist --dist-dir ${DOCKER_DIR}
+      - pip install -U '.[test]' --quiet
+      - cd ${DOCKER_DIR}
+      - TAR_NAME=$(ls sagemaker_*tar.gz)
+      - wget -q -O ${FRAMEWORK_BINARY} ${FRAMEWORK_BINARY_URI}
+      - docker build -t ${IMAGE_NAME} -f Dockerfile.cpu
+                     --build-arg py_version=${PY_VERSION} --build-arg framework_installable=${FRAMEWORK_BINARY}
+                     -t $TAG --build-arg framework_support_installable=${TAR_NAME} .
+      - cd -
+      - pytest test/integration/local --tag ${TAG} --docker-base-name ${PREPROD_IMAGE} --framework-version ${FRAMEWORK_VERSION}
+                                      --processor cpu --py-version ${PY_VERSION}
+
+  post_build:
+    commands:
+      - docker push ${IMAGE_NAME}
