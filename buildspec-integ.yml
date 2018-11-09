@@ -1,0 +1,52 @@
+version: 0.2
+
+phases:
+  install:
+      - echo Setting env vars
+
+      - FRAMEWORK_VERSION=$(ls docker | sort --version-sort -r | sed -n 1p) && printenv FRAMEWORK_VERSION
+      - TAG=${FRAMEWORK_VERSION}-${PROCESSOR}-py${PY_VERSION}-preprod && printenv TAG
+      - AWS_ID=$(aws sts get-caller-identity --output text  | awk '{print $1;}') && printenv AWS_ID
+      - ECR_REPO=${AWS_ID}.dkr.ecr.us-west-2.amazonaws.com && printenv ECR_REPO
+      - IMAGE_BASE_NAME=$(echo ${GIT_REPO_NAME} | cut -d'-' -f 1,2) && printenv IMAGE_BASE_NAME
+      - PREPROD_IMAGE=${ECR_REPO}/${IMAGE_BASE_NAME} && printenv PREPROD_IMAGE
+      - IMAGE_NAME=${PREPROD_IMAGE}:${TAG} && printenv IMAGE_NAME
+      - DOCKER_DIR=docker/${FRAMEWORK_VERSION} && printenv DOCKER_DIR
+      - FRAMEWORK_BINARY=/root/cache/$(basename ${FRAMEWORK_BINARY_URI}) && printenv FRAMEWORK_BINARY
+
+      - echo Installing dependencies
+
+      - pip install --upgrade pip --quiet --cache-dir /root/cache/pip
+      - pip install --upgrade awscli boto3 wheel --quiet --cache-dir /root/cache/pip
+      - aws configure set default.region ${AWS_REGION}
+      - $(aws ecr get-login --no-include-email)
+  pre_build:
+    commands:
+      - pip install -U . --quiet
+      - python setup.py -q sdist --dist-dir ${DOCKER_DIR} --cache-dir /root/cache/pip
+      - pip install -U '.[test]' --quiet --cache-dir /root/cache/pip
+      - TAR_NAME=$(ls sagemaker_*tar.gz)
+      - if [ ! -f "${FRAMEWORK_BINARY}" ]; then
+              wget -q -O ${FRAMEWORK_BINARY} ${FRAMEWORK_BINARY_URI}; fi
+      - cp ${FRAMEWORK_BINARY} ${DOCKER_DIR}
+
+      - echo Pulling previous image
+
+      - docker pull ${IMAGE_NAME} || true
+  build:
+    commands:
+      - cd ${DOCKER_DIR}
+      - docker build --cache-from ${IMAGE_NAME} -t ${IMAGE_NAME} -f ${DOCKERFILE}
+                     --build-arg py_version=${PY_VERSION} --build-arg framework_installable=${FRAMEWORK_BINARY}
+                     -t $TAG --build-arg framework_support_installable=${TAR_NAME} .
+      - cd -
+      - pytest test/integration/sagemaker --docker-base-name ${IMAGE_BASE_NAME} --account-id ${AWS_ID}
+                                          --tag ${TAG} --instance-type ${INSTANCE_TYPES}  --region ${AWS_REGION}
+                                           --processor=${PROCESSOR}    --py-version=${PY_VERSION}
+
+  post_build:
+    commands:
+      - docker push ${IMAGE_NAME}
+cache:
+  paths:
+  - /root/cache/*
